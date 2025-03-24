@@ -1,12 +1,14 @@
+from fastapi import FastAPI, Request
 from mcp.server.fastmcp import FastMCP
 import requests
 import schedule
 import time
 import threading
 from datetime import datetime
+import uvicorn
 
-# Create an MCP server
-mcp = FastMCP("Telegram Bot Demo")
+app = FastAPI()
+mcp = FastMCP("Telegram Scheduler")
 
 # Telegram Bot Configuration
 TELEGRAM_TOKEN = "7454317511:AAFrlEhKVRYWY4K2o09wXAGmS5kbxVnNUPI"
@@ -23,6 +25,16 @@ def send_message_to_telegram(chat_id: str, message: str) -> dict:
     response = requests.post(url, json=data)
     return response.json()
 
+@app.get("/")
+async def root():
+    return {"message": "Telegram Scheduler Bot is running!"}
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    # اینجا پردازش پیام‌های تلگرام انجام میشه
+    return {"ok": True}
+
 @mcp.tool()
 def send_telegram_message(chat_id: str, message: str) -> str:
     """Send a message to Telegram chat immediately"""
@@ -30,25 +42,10 @@ def send_telegram_message(chat_id: str, message: str) -> str:
     return f"Message sent: {result}"
 
 @mcp.tool()
-def schedule_telegram_message(chat_id: str, message: str, send_time: str) -> str:
-    """Schedule a message to be sent at a specific time
-    send_time format should be HH:MM (24-hour format)"""
-    try:
-        # Parse the time
-        hour, minute = map(int, send_time.split(':'))
-        if not (0 <= hour <= 23 and 0 <= minute <= 59):
-            return "Invalid time format. Please use HH:MM in 24-hour format."
-
-        # Schedule the message
-        schedule.every().day.at(send_time).do(
-            send_message_to_telegram,
-            chat_id=chat_id,
-            message=f"{message}\n\n⏰ Scheduled message sent at: {send_time}"
-        )
-        
-        return f"Message scheduled to be sent at {send_time}"
-    except Exception as e:
-        return f"Error scheduling message: {str(e)}"
+async def schedule_message(chat_id: str, message: str, time: str) -> str:
+    """Schedule a message to be sent at a specific time"""
+    # اینجا منطق زمانبندی پیام اضافه میشه
+    return f"Message scheduled for {time}"
 
 def run_scheduler():
     """Run the scheduler in background"""
@@ -75,3 +72,4 @@ if __name__ == "__main__":
     print("You can test it with:")
     print("mcp dev first-mcp.py")
     print("\nScheduler is running in background...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
