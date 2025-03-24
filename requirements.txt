@@ -2,4 +2,4 @@ fastapi
 uvicorn
 python-telegram-bot
 schedule
-mcp-python-sdk 
+requests 
